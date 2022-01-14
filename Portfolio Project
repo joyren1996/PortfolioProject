@@ -1,0 +1,122 @@
+SELECT * FROM coviddeaths
+WHERE continent IS NOT NULL
+ORDER BY 3,4
+
+
+
+
+SELECT case_location,continent, record_date, total_cases, new_cases, total_deaths, population 
+FROM coviddeaths
+WHERE continent IS NOT NULL
+ORDER BY 1,2
+
+-- Looking at Total Cases vs Total Deaths
+
+SELECT case_location, record_date, total_cases, total_deaths, (total_deaths::float/total_cases::float)*100 as death_rate 
+FROM coviddeaths
+WHERE case_location LIKE '%States%'
+ORDER BY 1,2
+
+-- Looking at Total Cases vs Population
+SELECT case_location, record_date, total_cases, population, (total_cases::float/population::float)*100 as infection_rate 
+FROM coviddeaths
+WHERE case_location LIKE '%States%'
+ORDER BY 1,2
+
+--Looking at countries with the highest infection rate compared to population
+SELECT case_location, population, max(total_cases) as peak, MAX(total_cases::float/population::float)*100 as infection_rate 
+FROM coviddeaths
+WHERE continent IS NOT NULL
+GROUP BY case_location, population
+ORDER BY infection_rate DESC
+
+-- Showing countries with the highest death count per population
+SELECT case_location, MAX(total_deaths) as death_count
+FROM coviddeaths
+WHERE continent IS NOT NULL
+GROUP BY case_location
+ORDER BY death_count DESC
+
+
+-- Break things down by continent
+-- Showing continents with the highest death count per population
+
+SELECT case_location, MAX(total_deaths) as death_count
+FROM coviddeaths
+WHERE continent IS NULL AND case_location NOT LIKE '%income%'
+GROUP BY case_location
+ORDER BY death_count DESC
+
+-- Global numbers
+-- total deaths across the world by date
+SELECT record_date, SUM(new_cases) AS total_cases, sum(new_deaths) AS total_deaths,(SUM(new_deaths)::float/SUM(new_cases)::float)*100 as daily_death_rate 
+FROM coviddeaths
+WHERE continent IS NOT NULL
+GROUP BY record_date
+ORDER BY 1,2
+
+-- Vaccination Table
+
+-- Looking at Total population vs Vaccinations 
+SELECT dea.continent, dea.case_location, dea.record_date, dea.population, vac.new_vaccinations,
+SUM(vac.new_vaccinations) OVER (PARTITION BY vac.case_location ORDER BY vac.case_location, vac.record_date) AS rolling_vaccinated
+FROM coviddeaths dea 
+JOIN covidvaccinations vac
+ON dea.case_location = vac.case_location
+AND dea.record_date = vac.record_date
+WHERE dea.continent IS NOT NULL
+ORDER BY 2,3
+
+-- CTE
+
+With PopvsVac (Continent, Location, Date, Population, New_Vaccinations, Rolling_vaccinated)
+AS
+(
+SELECT dea.continent, dea.case_location, dea.record_date, dea.population, vac.new_vaccinations,
+SUM(vac.new_vaccinations) OVER (PARTITION BY vac.case_location ORDER BY vac.case_location, vac.record_date) AS rolling_vaccinated
+FROM coviddeaths dea 
+JOIN covidvaccinations vac
+ON dea.case_location = vac.case_location
+AND dea.record_date = vac.record_date
+WHERE dea.continent IS NOT NULL
+)
+SELECT * , (rolling_vaccinated::float/population::float)*100 AS Vac_rate
+FROM PopvsVac
+
+-- Temp Table
+DROP TABLE IF EXISTS VaccinationRate
+CREATE TABLE VaccinationRate
+(
+continent VARCHAR(50),
+Case_Location VARCHAR(50),
+Record_Date DATE,
+Population INT8,
+New_vaccinations BIGINT,
+Rolling_Vaccinated numeric
+)
+
+INSERT INTO VaccinationRate
+SELECT dea.continent, dea.case_location, dea.record_date, dea.population, vac.new_vaccinations,
+SUM(vac.new_vaccinations) OVER (PARTITION BY vac.case_location ORDER BY vac.case_location, vac.record_date) AS rolling_vaccinated
+FROM coviddeaths dea 
+JOIN covidvaccinations vac
+ON dea.case_location = vac.case_location
+AND dea.record_date = vac.record_date
+--WHERE dea.continent IS NOT NULL
+
+SELECT * , (rolling_vaccinated::float/population::float)*100 AS Vac_rate
+FROM VaccinationRate
+
+-- Creating View to store data for later visualizations
+
+CREATE VIEW VaccinationRate AS
+SELECT dea.continent, dea.case_location, dea.record_date, dea.population, vac.new_vaccinations,
+SUM(vac.new_vaccinations) OVER (PARTITION BY vac.case_location ORDER BY vac.case_location, vac.record_date) AS rolling_vaccinated
+FROM coviddeaths dea 
+JOIN covidvaccinations vac
+ON dea.case_location = vac.case_location
+AND dea.record_date = vac.record_date
+WHERE dea.continent IS NOT NULL
+
+SELECT * FROM VaccinationRate
+
