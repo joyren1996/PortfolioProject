@@ -1,19 +1,18 @@
 -- Import two csv files into pgAdmin
-
 CREATE TABLE CovidDeaths (
 iso_code VARCHAR (50),
 continent VARCHAR (50),
 case_location VARCHAR (50),
 record_date DATE,
 population INT8,
-total_cases	INT,
-new_cases	INT,
-new_cases_smoothed DECIMAL(9,3),
+total_cases	BIGINT,
+new_cases	BIGINT,
+new_cases_smoothed DECIMAL(10,3),
 total_deaths INT,
 new_deaths	INT,
 new_deaths_smoothed	DECIMAL(8,3),
 total_cases_per_million	DECIMAL(9,3),
-new_cases_per_million DECIMAL(8,3),
+new_cases_per_million DECIMAL(9,3),
 new_cases_smoothed_per_million DECIMAL(8,3),
 total_deaths_per_million DECIMAL(8,3),
 new_deaths_per_million DECIMAL(8,3),
