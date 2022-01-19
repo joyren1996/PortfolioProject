@@ -1,0 +1,26 @@
+-- Table 1
+SELECT SUM(new_cases) AS total_cases, SUM(new_deaths) AS total_deaths, SUM(new_deaths)/SUM(new_cases)::float*100 AS DeathRate
+FROM coviddeaths
+WHERE continent IS NOT NULL
+ORDER BY 1,2
+
+-- Table 2
+SELECT case_location, SUM(new_deaths) AS total_deaths
+FROM coviddeaths
+WHERE continent IS NULL
+AND case_location NOT IN ('World','European Union','International')
+AND case_location NOT LIKE '%income%'
+GROUP BY case_location
+ORDER BY total_deaths DESC
+
+-- Table 3
+SELECT case_location, population, MAX(total_cases) AS HighestInfectionCount, MAX(total_cases::float/population::float)*100 AS PercentPopulationInfected
+FROM coviddeaths
+GROUP BY case_location, population
+ORDER BY PercentPopulationInfected
+
+-- Table 4
+SELECT case_location, population,record_date, MAX(total_cases) AS HighestInfectionCount, MAX(total_cases::float/population::float)*100 AS PercentPopulationInfected
+FROM coviddeaths
+GROUP BY case_location, population, record_date
+ORDER BY PercentPopulationInfected DESC
